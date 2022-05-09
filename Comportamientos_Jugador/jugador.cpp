@@ -5,10 +5,17 @@
 #include <cmath>
 #include <set>
 #include <stack>
+#include <queue>
 
 // Este es el método principal que se piden en la practica.
 // Tiene como entrada la información de los sensores y devuelve la acción a realizar.
 // Para ver los distintos sensores mirar fichero "comportamiento.hpp"
+
+
+
+ //
+
+
 Action ComportamientoJugador::think(Sensores sensores)
 {
 	Action accion = actIDLE;
@@ -32,9 +39,21 @@ Action ComportamientoJugador::think(Sensores sensores)
 		objetivos.push_back(aux);
 	}
 
-	bool hay_plan = pathFinding(sensores.nivel, actual, objetivos, plan);
+	if (!hayPlan)
+	{
+		hayPlan = pathFinding(sensores.nivel, actual, objetivos, plan);
+	}
+	Action sigAccion;
+	if(hayPlan && plan.size() > 0){
+		sigAccion = plan.front();
+		plan.erase(plan.begin());
+	}
+	else{
+		cout << "no se pudo encontrar plan";
+	}
 
-	return accion;
+
+	return sigAccion;
 }
 
 // Llama al algoritmo de busqueda que se usara en cada comportamiento del agente
@@ -54,7 +73,11 @@ bool ComportamientoJugador::pathFinding(int level, const estado &origen, const l
 	case 1:
 		cout << "Optimo numero de acciones\n";
 		// Incluir aqui la llamada al busqueda en anchura
-		cout << "No implementado aun\n";
+		cout << "Anchura\n";
+		estado un_objetivo1;
+		un_objetivo1 = objetivos.front();
+		cout << "fila: " << un_objetivo1.fila << " col:" << un_objetivo1.columna << endl;
+		return pathFinding_Anchura(origen, un_objetivo1, plan);
 		break;
 	case 2:
 		cout << "Optimo en coste\n";
@@ -261,6 +284,125 @@ bool ComportamientoJugador::pathFinding_Profundidad(const estado &origen, const 
 
 	return false;
 }
+
+
+//MI CODIGO 
+
+
+bool ComportamientoJugador::compruebaAbierto(estado actual, estado destino, list<Action> actualsec){
+	if (actual.fila == destino.fila and actual.columna == destino.columna)
+	{
+		cout << "Cargando el plan\n";
+		plan = actualsec;
+		cout << "Longitud del plan: " << plan.size() << endl;
+		PintaPlan(plan);
+		// ver el plan en el mapa
+		return true;
+	}
+}
+
+
+bool ComportamientoJugador::pathFinding_Anchura(const estado &origen, const estado &destino, list<Action> &plan)
+{
+	// Borro la lista
+	cout << "Calculando plan\n";
+	plan.clear();
+	set<estado, ComparaEstados> Cerrados; // Lista de Cerrados
+	queue<nodo> Abiertos;				  // Lista de Abiertos
+
+	nodo current;
+	current.st = origen;
+	current.secuencia.empty();
+
+	Abiertos.push(current);
+
+	while (!Abiertos.empty() and (current.st.fila != destino.fila or current.st.columna != destino.columna))
+	{
+
+		Abiertos.pop();
+		Cerrados.insert(current.st);
+
+		// Generar descendiente de girar a la derecha 90 grados
+		nodo hijoTurnR = current;
+		hijoTurnR.st.orientacion = (hijoTurnR.st.orientacion + 2) % 8;
+		if (Cerrados.find(hijoTurnR.st) == Cerrados.end())
+		{
+			hijoTurnR.secuencia.push_back(actTURN_R);
+			Abiertos.push(hijoTurnR);
+			compruebaAbierto(current.st, destino, current.secuencia);
+		}
+
+		// Generar descendiente de girar a la derecha 45 grados
+		nodo hijoSEMITurnR = current;
+		hijoSEMITurnR.st.orientacion = (hijoSEMITurnR.st.orientacion + 1) % 8;
+		if (Cerrados.find(hijoSEMITurnR.st) == Cerrados.end())
+		{
+			hijoSEMITurnR.secuencia.push_back(actSEMITURN_R);
+			Abiertos.push(hijoSEMITurnR);
+			compruebaAbierto(current.st, destino, current.secuencia);			
+		}
+
+		// Generar descendiente de girar a la izquierda 90 grados
+		nodo hijoTurnL = current;
+		hijoTurnL.st.orientacion = (hijoTurnL.st.orientacion + 6) % 8;
+		if (Cerrados.find(hijoTurnL.st) == Cerrados.end())
+		{
+			hijoTurnL.secuencia.push_back(actTURN_L);
+			Abiertos.push(hijoTurnL);
+			compruebaAbierto(current.st, destino, current.secuencia);
+		}
+
+		// Generar descendiente de girar a la izquierda 45 grados
+		nodo hijoSEMITurnL = current;
+		hijoSEMITurnL.st.orientacion = (hijoSEMITurnL.st.orientacion + 7) % 8;
+		if (Cerrados.find(hijoSEMITurnL.st) == Cerrados.end())
+		{
+			hijoSEMITurnL.secuencia.push_back(actSEMITURN_L);
+			Abiertos.push(hijoSEMITurnL);
+			compruebaAbierto(current.st, destino, current.secuencia);
+		}
+
+		// Generar descendiente de avanzar
+		nodo hijoForward = current;
+		if (!HayObstaculoDelante(hijoForward.st))
+		{
+			if (Cerrados.find(hijoForward.st) == Cerrados.end())
+			{
+				hijoForward.secuencia.push_back(actFORWARD);
+				Abiertos.push(hijoForward);
+				compruebaAbierto(current.st, destino, current.secuencia);
+			}
+		}
+
+		// Tomo el siguiente valor de la Abiertos
+		if (!Abiertos.empty())
+		{
+			current = Abiertos.front();
+		}
+	}
+
+	cout << "Terminada la busqueda\n";
+
+	if (current.st.fila == destino.fila and current.st.columna == destino.columna)
+	{
+		cout << "Cargando el plan\n";
+		plan = current.secuencia;
+		cout << "Longitud del plan: " << plan.size() << endl;
+		PintaPlan(plan);
+		// ver el plan en el mapa
+		VisualizaPlan(origen, plan);
+		return true;
+	}
+	else
+	{
+		cout << "No encontrado plan\n";
+	}
+
+	return false;
+}
+
+
+//
 
 // Sacar por la consola la secuencia del plan obtenido
 void ComportamientoJugador::PintaPlan(list<Action> plan)

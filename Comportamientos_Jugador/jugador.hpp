@@ -14,7 +14,7 @@ struct estado {
 class ComportamientoJugador : public Comportamiento {
   public:
     ComportamientoJugador(unsigned int size) : Comportamiento(size) {
-      // Inicializar Variables de Estado
+      hayPlan = false;
     }
     ComportamientoJugador(std::vector< std::vector< unsigned char> > mapaR) : Comportamiento(mapaR) {
       // Inicializar Variables de Estado
@@ -29,6 +29,7 @@ class ComportamientoJugador : public Comportamiento {
 
   private:
     // Declarar Variables de Estado
+    bool hayPlan;
     estado actual;
     list<estado> objetivos;
     list<Action> plan;
@@ -36,6 +37,8 @@ class ComportamientoJugador : public Comportamiento {
     // Métodos privados de la clase
     bool pathFinding(int level, const estado &origen, const list<estado> &destino, list<Action> &plan);
     bool pathFinding_Profundidad(const estado &origen, const estado &destino, list<Action> &plan);
+    bool pathFinding_Anchura(const estado &origen, const estado &destino, list<Action> &plan);
+    bool compruebaAbierto(estado actual,estado destino, list<Action> actualsec);
 
     void PintaPlan(list<Action> plan);
     bool HayObstaculoDelante(estado &st);
